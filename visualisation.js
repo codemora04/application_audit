@@ -127,49 +127,49 @@ atelierSelect.addEventListener("change", () => {
     populateAudits(DICT_REVEY[atelier]);
 });
 
-/* ===================== RENDER LEGEND (HOUSEKEEPING) ===================== */
-function renderLegend(audit, company, atelier) {
+/* ===================== RENDER LEGEND (HOUSEKEEPING / SAFETY) ===================== */
+const HOUSEKEEPING_ZONES = {
+    "Zone 1":  ["Stockage 1500", "Station de lavage"],
+    "Zone 2":  ["Atelier chaudronnerie", "Atelier mécanique", "Atelier électrique"],
+    "Zone 3":  ["Stockage C130", "Stockage 840", "Stockage 842"],
+    "Zone 4":  ["Station traitement eaux usée", "Bassin des asides gras"],
+    "Zone 5":  ["Chaufferie"],
+    "Zone 6":  ["Fosse de dépotage", "Stockage fuel", "Cantine", "Pompe de dépotage"],
+    "Zone 7":  ["Stockage propane", "Stockage bouteilles de gaz", "Poste de contrôle", "Vestiaire"],
+    "Zone 8":  ["Poste Transfo"],
+    "Zone 9":  ["Electrolyseur N°2/N°3"],
+    "Zone 10": ["Local mezzanine préparation Révey", "Préparation Révey (pâte à tartiner)"],
+    "Zone 11": ["Conditionnement Révey (pâte à tartiner)", "Frigo stockage fruits secs"],
+    "Zone 12": ["Shortening (Conditionnement graisse végétale)", "Fritys (Conditionnement graisse végétale)"],
+    "Zone 13": ["Raffinage 1 (graisse végétale)"],
+    "Zone 14": ["Hydrogénation (graisse végétale)"],
+    "Zone 15": ["Magazine matériel dépotage", "Magazine produits chimiques", "Magazine acide citrique", "Local Calorifuge", "Stockage emballage", "PDR", "Local Sel", "Local Puits"],
+    "Zone 16": ["Mezzanine salle bleue (stockage emballage/matière)", "salle bleue"],
+    "Zone 17": ["Mezzanine Révey (stockage emballage)", "Magazine Révey emballage", "Magazine Révey consommables"],
+    "Zone 18": ["Raffinage 2 (graisse végétale)", "Stockage 65"],
+    "Zone 19": ["Barkining", "Administration"],
+    "Zone 20": ["Bureau magasinier", "Bureau maintenance", "Bureau agent de sécurité"]
+};
+
+function renderLegend(audit) {
     if (!legendContainer || !legendContent) return;
-    
-    if (!audit.toLowerCase().includes("housekeeping")) {
+
+    const name = audit.toLowerCase();
+    if (!name.includes("safety")) {
         legendContainer.classList.add("hidden");
         return;
     }
 
-    let auditDict = null;
-    if (company === "BALTIMAR" && DICT_BALTIMAR) {
-        auditDict = DICT_BALTIMAR[audit];
-    } else if (company === "REVEY" && DICT_REVEY && atelier) {
-        auditDict = DICT_REVEY[atelier][audit];
+    let html = "";
+    for (const [zone, subZones] of Object.entries(HOUSEKEEPING_ZONES)) {
+        html += `<div style="margin-bottom: 10px;">`;
+        html += `<strong style="color: var(--text-main); font-size: 0.95rem;">${zone}</strong>`;
+        html += `<ul style="padding-left: 18px; margin: 4px 0 0 0; list-style-type: disc;">`;
+        subZones.forEach(sz => {
+            html += `<li style="margin-bottom: 2px; color: var(--text-secondary);">${sz}</li>`;
+        });
+        html += `</ul></div>`;
     }
-
-    if (!auditDict) {
-        legendContainer.classList.add("hidden");
-        return;
-    }
-
-    let html = "<ul style='padding-left: 20px; list-style-type: square; margin: 0;'>";
-    for (const [zone, zoneData] of Object.entries(auditDict)) {
-        html += `<li style='margin-bottom: 5px;'><strong>${zone}</strong>`;
-        
-        const values = typeof zoneData === "object" && zoneData !== null ? Object.values(zoneData) : [];
-        const zoneIsDirectQuestions = Array.isArray(zoneData);
-        const zoneIsDirectRubriques = values.length > 0 && values.every((v) => Array.isArray(v));
-        
-        if (!zoneIsDirectQuestions && !zoneIsDirectRubriques) {
-            const subZones = Object.keys(zoneData);
-            if (subZones.length > 0) {
-                html += "<ul style='padding-left: 20px; list-style-type: circle; margin-top: 3px;'>";
-                subZones.forEach(sz => {
-                    html += `<li>${sz}</li>`;
-                });
-                html += "</ul>";
-            }
-        }
-        
-        html += "</li>";
-    }
-    html += "</ul>";
 
     legendContent.innerHTML = html;
     legendContainer.classList.remove("hidden");
@@ -181,7 +181,7 @@ auditSelect.addEventListener("change", async () => {
     hideChart();
     if (!audit) return;
     
-    renderLegend(audit, companySelect.value, atelierSelect.value);
+    renderLegend(audit);
 
     // 1. Fetch all sessions for this audit
     const { data: sessions, error: sessErr } = await supabase
