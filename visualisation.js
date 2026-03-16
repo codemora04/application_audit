@@ -24,8 +24,7 @@ const logoutBtn = document.getElementById("logoutBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const canvas = document.getElementById("scoreChart");
 const ctx = canvas.getContext("2d");
-const legendContainer = document.getElementById("legendContainer");
-const legendContent = document.getElementById("legendContent");
+
 
 let scoreChart = null;
 let DICT_BALTIMAR = null;
@@ -56,9 +55,6 @@ function hideChart() {
     chartContainer.classList.add("hidden");
     noDataMessage.classList.add("hidden");
     document.getElementById("summaryTableContainer")?.classList.add("hidden");
-    if (legendContainer) {
-        legendContainer.classList.add("hidden");
-    }
 }
 
 /* ===================== POPULATE AUDITS ===================== */
@@ -127,61 +123,12 @@ atelierSelect.addEventListener("change", () => {
     populateAudits(DICT_REVEY[atelier]);
 });
 
-/* ===================== RENDER LEGEND (HOUSEKEEPING / SAFETY) ===================== */
-const HOUSEKEEPING_ZONES = {
-    "Zone 1":  ["Stockage 1500", "Station de lavage"],
-    "Zone 2":  ["Atelier chaudronnerie", "Atelier mécanique", "Atelier électrique"],
-    "Zone 3":  ["Stockage C130", "Stockage 840", "Stockage 842"],
-    "Zone 4":  ["Station traitement eaux usée", "Bassin des asides gras"],
-    "Zone 5":  ["Chaufferie"],
-    "Zone 6":  ["Fosse de dépotage", "Stockage fuel", "Cantine", "Pompe de dépotage"],
-    "Zone 7":  ["Stockage propane", "Stockage bouteilles de gaz", "Poste de contrôle", "Vestiaire"],
-    "Zone 8":  ["Poste Transfo"],
-    "Zone 9":  ["Electrolyseur N°2/N°3"],
-    "Zone 10": ["Local mezzanine préparation Révey", "Préparation Révey (pâte à tartiner)"],
-    "Zone 11": ["Conditionnement Révey (pâte à tartiner)", "Frigo stockage fruits secs"],
-    "Zone 12": ["Shortening (Conditionnement graisse végétale)", "Fritys (Conditionnement graisse végétale)"],
-    "Zone 13": ["Raffinage 1 (graisse végétale)"],
-    "Zone 14": ["Hydrogénation (graisse végétale)"],
-    "Zone 15": ["Magazine matériel dépotage", "Magazine produits chimiques", "Magazine acide citrique", "Local Calorifuge", "Stockage emballage", "PDR", "Local Sel", "Local Puits"],
-    "Zone 16": ["Mezzanine salle bleue (stockage emballage/matière)", "salle bleue"],
-    "Zone 17": ["Mezzanine Révey (stockage emballage)", "Magazine Révey emballage", "Magazine Révey consommables"],
-    "Zone 18": ["Raffinage 2 (graisse végétale)", "Stockage 65"],
-    "Zone 19": ["Barkining", "Administration"],
-    "Zone 20": ["Bureau magasinier", "Bureau maintenance", "Bureau agent de sécurité"]
-};
-
-function renderLegend(audit) {
-    if (!legendContainer || !legendContent) return;
-
-    const name = audit.toLowerCase();
-    if (!name.includes("safety")) {
-        legendContainer.classList.add("hidden");
-        return;
-    }
-
-    let html = "";
-    for (const [zone, subZones] of Object.entries(HOUSEKEEPING_ZONES)) {
-        html += `<div style="margin-bottom: 10px;">`;
-        html += `<strong style="color: var(--text-main); font-size: 0.95rem;">${zone}</strong>`;
-        html += `<ul style="padding-left: 18px; margin: 4px 0 0 0; list-style-type: disc;">`;
-        subZones.forEach(sz => {
-            html += `<li style="margin-bottom: 2px; color: var(--text-secondary);">${sz}</li>`;
-        });
-        html += `</ul></div>`;
-    }
-
-    legendContent.innerHTML = html;
-    legendContainer.classList.remove("hidden");
-}
 
 /* ===================== AUDIT FILTER & CHART ===================== */
 auditSelect.addEventListener("change", async () => {
     const audit = auditSelect.value;
     hideChart();
     if (!audit) return;
-    
-    renderLegend(audit);
 
     // 1. Fetch all sessions for this audit
     const { data: sessions, error: sessErr } = await supabase
