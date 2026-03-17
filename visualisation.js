@@ -24,11 +24,32 @@ const logoutBtn = document.getElementById("logoutBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const canvas = document.getElementById("scoreChart");
 const ctx = canvas.getContext("2d");
-
+const zoneSpeechBubble = document.getElementById("zoneSpeechBubble");
 
 let scoreChart = null;
 let DICT_BALTIMAR = null;
 let DICT_REVEY = null;
+
+
+
+/* ===================== SAFETY AUDIT STRUCTURE ===================== */
+const SAFETY_STRUCTURE = {
+    "Accès Piétons": ["Voie d'accès", "Sol", "Signalétique", "Éclairage"],
+    "Accès Engins": ["Voie d'accès", "Sol", "Signalétique", "Éclairage"],
+    "Stockage Extérieur": ["Conformité", "Propreté", "Organisation"],
+    "Parking": ["Marquage", "Signalétique", "État général"],
+    "Zone de Déchargement": ["Sécurité", "Organisation", "Propreté"],
+    "Vestiaires": ["Propreté", "Équipements", "Ventilation"],
+    "Sanitaires": ["Propreté", "État", "Accessibilité"],
+    "Réfectoire": ["Hygiène", "Équipements", "Propreté"],
+    "Bureaux": ["Ergonomie", "Ordre", "Sécurité"],
+    "Ateliers": ["Machines", "Propreté", "Rangement", "EPI", "Ventilation"],
+    "Stockage Intérieur": ["Organisation", "Rayonnages", "Signalétique"],
+    "Circulation Intérieure": ["Marquage", "Dégagements", "Signalétique"],
+    "Issues de Secours": ["Accessibilité", "Signalétique", "Fonctionnement"],
+    "Extincteurs": ["Présence", "Accessibilité", "Contrôle"],
+    "Électricité": ["Armoires", "Câblage", "Conformité"]
+};
 
 /* ===================== LOAD DICT FROM SUPABASE ===================== */
 async function loadDict(name) {
@@ -54,8 +75,11 @@ function resetAuditSelect(placeholder = "-- Choisir un audit --") {
 function hideChart() {
     chartContainer.classList.add("hidden");
     noDataMessage.classList.add("hidden");
-    document.getElementById("summaryTableContainer")?.classList.add("hidden");
+    const tableContainer = document.getElementById("summaryTableContainer");
+    if (tableContainer) tableContainer.classList.add("hidden");
+    if (zoneSpeechBubble) zoneSpeechBubble.classList.add("hidden");
 }
+
 
 /* ===================== POPULATE AUDITS ===================== */
 // dict = the object whose keys are audit names
@@ -226,8 +250,11 @@ auditSelect.addEventListener("change", async () => {
     renderChart(labels, datasets);
     renderSummaryTable(labels, timelineStats, zonesToChart);
     chartContainer.classList.remove("hidden");
-    document.getElementById("summaryTableContainer")?.classList.remove("hidden");
+    const tableContainer = document.getElementById("summaryTableContainer");
+    if (tableContainer) tableContainer.classList.remove("hidden");
 });
+
+
 
 function renderSummaryTable(labels, timelineStats, zonesToChart) {
     const tableBody = document.getElementById("summaryTableBody");
@@ -236,11 +263,11 @@ function renderSummaryTable(labels, timelineStats, zonesToChart) {
 
     // Show the most recent period first
     const lastDate = labels[labels.length - 1];
-    
+
     zonesToChart.forEach(zone => {
         const stats = timelineStats[lastDate]?.[zone];
         const score = stats ? Math.round((stats.good / stats.total) * 100) : 0;
-        
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td style="text-align:left; font-weight:500;">${zone}</td>
@@ -249,6 +276,13 @@ function renderSummaryTable(labels, timelineStats, zonesToChart) {
         tableBody.appendChild(tr);
     });
 }
+
+/* ===================== HIDE BUBBLE ON OUTSIDE CLICK ===================== */
+document.addEventListener("click", (e) => {
+    if (e.target.id !== "scoreChart" && zoneSpeechBubble) {
+        zoneSpeechBubble.classList.add("hidden");
+    }
+});
 
 /* ===================== RENDER CHART ===================== */
 function renderChart(labels, datasets) {
@@ -283,6 +317,46 @@ function renderChart(labels, datasets) {
                         label: c => c.dataset.label + ": " + c.parsed.y + "%"
                     }
                 }
+            },
+            onClick: (e, elements, chart) => {
+                if (!zoneSpeechBubble) return;
+
+                if (!elements || elements.length === 0) {
+                    zoneSpeechBubble.classList.add("hidden");
+                    return;
+                }
+
+                const datasetIndex = elements[0].datasetIndex;
+                const zone = chart.data.datasets[datasetIndex].label;
+
+                const auditName = auditSelect.value || "";
+                if (!auditName.toLowerCase().includes("safety")) {
+                    zoneSpeechBubble.classList.add("hidden");
+                    return;
+                }
+
+                const subzones = SAFETY_STRUCTURE[zone];
+                if (!subzones || subzones.length === 0) {
+                    zoneSpeechBubble.classList.add("hidden");
+                    return;
+                }
+
+                let html = `<div class="bubble-title">${zone}</div><ul class="bubble-list">`;
+                subzones.forEach(sz => {
+                    html += `<li>${sz}</li>`;
+                });
+                html += `</ul>`;
+                zoneSpeechBubble.innerHTML = html;
+
+                zoneSpeechBubble.classList.remove("hidden");
+                zoneSpeechBubble.style.left = "-9999px";
+
+                setTimeout(() => {
+                    const x = e.native.pageX;
+                    const y = e.native.pageY;
+                    zoneSpeechBubble.style.left = (x - zoneSpeechBubble.offsetWidth / 2) + "px";
+                    zoneSpeechBubble.style.top = (y - zoneSpeechBubble.offsetHeight - 15) + "px";
+                }, 0);
             }
         }
     });
